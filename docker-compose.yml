@@ -1,0 +1,49 @@
+version: "3.1"
+
+services:
+
+  zookeeper:
+    image: zookeeper:3.5
+    container_name: zookeeper
+    volumes:
+      - ./data:/var/zookeeper/data
+      - ./datalog:/var/zookeeper/datalog
+    ports:
+      - 2181:2181
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10k"
+        max-file: "10"
+
+  kafka:
+    image: wurstmeister/kafka
+    container_name: kafka
+    hostname: kafka
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181/kafka
+      KAFKA_ADVERTISED_HOST_NAME: 192.168.31.64
+      KAFKA_ADVERTISED_PORT: 9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://192.168.31.64:9092
+      KAFKA_LISTENERS: PLAINTEXT://:9092
+    volumes:
+      - ./kafka:/kafka
+      - ./docker.sock:/var/run/docker.sock
+    ports:
+      - 9092:9092
+    depends_on:
+      - zookeeper
+    restart: always
+
+  kafka-manager:
+    image: sheepkiller/kafka-manager
+    container_name: kafka-manager
+    environment:
+      ZK_HOSTS: zookeeper:2181
+      KAFKA_BROKERS: 192.168.31.64:9092
+    ports:
+      - 10041:9000
+    links:
+      - kafka
+    restart: always
